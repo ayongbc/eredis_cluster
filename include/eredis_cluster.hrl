@@ -1,4 +1,4 @@
--type anystring() :: string() | bitstring().
+-type anystring() :: string() | bitstring() | integer().
 
 -type redis_simple_command() :: [anystring()].
 -type redis_pipeline_command() :: [redis_simple_command()].
@@ -7,7 +7,7 @@
 -type redis_error_result() :: Reason::bitstring() | no_connection
     | invalid_cluster_command.
 -type redis_success_result() :: Result::bitstring().
--type redis_simple_result() :: {ok, redis_success_result()}
+-type redis_simple_result() :: {ok, redis_success_result() | [redis_success_result()]}
     | {error, redis_error_result()}.
 -type redis_pipeline_result() :: [redis_simple_result()].
 -type redis_transaction_result() :: {ok, [redis_success_result()]}
@@ -17,14 +17,28 @@
 -record(node, {
     address :: string(),
     port :: integer(),
-    pool :: atom()
+    password :: string(),
+    cluster_name :: atom(),
+    size :: non_neg_integer(),
+    max_overflow :: non_neg_integer()
 }).
 
 -record(slots_map, {
     start_slot :: integer(),
     end_slot :: integer(),
     index :: integer(),
-    node :: #node{}
+    node :: #node{},
+    id :: binary(),
+    pool :: atom(),
+    pid :: pid()
+}).
+
+-record(cluster, {
+    cluster_name :: atom(),
+    init_nodes :: [#node{}],
+    slots_maps :: list(), %% whose elements are #slots_map{}
+    version :: integer(),
+    tref :: reference()
 }).
 
 -define(REDIS_CLUSTER_HASH_SLOTS, 16384).
@@ -32,7 +46,8 @@
 -define(REDIS_CLUSTER_REQUEST_TTL, 16).
 -define(REDIS_RETRY_DELAY, 100).
 
--define(CRCDEF, <<16#00,16#00,16#10,16#21,16#20,16#42,16#30,16#63,
+-define(CRCDEF, <<
+16#00,16#00,16#10,16#21,16#20,16#42,16#30,16#63,
 16#40,16#84,16#50,16#a5,16#60,16#c6,16#70,16#e7,
 16#81,16#08,16#91,16#29,16#a1,16#4a,16#b1,16#6b,
 16#c1,16#8c,16#d1,16#ad,16#e1,16#ce,16#f1,16#ef,

@@ -12,10 +12,7 @@ start_link() ->
 -spec init([])
 	-> {ok, {{supervisor:strategy(), 1, 5}, [supervisor:child_spec()]}}.
 init([]) ->
-    Procs = [{eredis_cluster_pool,
-                {eredis_cluster_pool, start_link, []},
-                permanent, 5000, supervisor, [dynamic]},
-            {eredis_cluster_monitor,
+    Procs = [{eredis_cluster_monitor,
                 {eredis_cluster_monitor, start_link, []},
                 permanent, 5000, worker, [dynamic]}
             ],
